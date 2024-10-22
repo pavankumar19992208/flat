@@ -214,12 +214,16 @@ elif page == "Expenditures":
     st.markdown("### Monthly Installment Table")
     emi_data = list(monthly_expected_collection.find())
     emi_df = pd.DataFrame(emi_data).drop(columns=['_id'])
+    if 'amount' in emi_df.columns:
+        emi_df['amount'] = emi_df['amount'].map('{:.2f}'.format)
     st.table(emi_df)
 
     # Expenses Table
     st.markdown("### Expenses Table")
     expenses_data = list(expenses_collection.find())
     expenses_df = pd.DataFrame(expenses_data).drop(columns=['_id'])
+    if 'amount' in expenses_df.columns:
+        expenses_df['amount'] = expenses_df['amount'].map('{:.2f}'.format)
     st.table(expenses_df)
 
 elif page == "Portfolio":
