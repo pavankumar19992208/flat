@@ -17,6 +17,7 @@ db = client["investment_tracker"]
 users_collection = db["users"]
 expenses_collection = db["expenses"]
 monthly_expected_collection = db["monthly_expected"]
+cred_collection = db["cred"]
 
 # Streamlit app setup
 st.markdown(
@@ -87,7 +88,8 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 def authenticate(pin):
-    if pin == "1720":
+    cred = cred_collection.find_one({"pin": pin})
+    if cred:
         st.session_state.authenticated = True
         st.success("Authenticated successfully!")
     else:
@@ -151,7 +153,7 @@ if page == "Investment Tracker":
                 st.markdown('<div class="form-container">', unsafe_allow_html=True)
                 user_list = [user["name"] for user in users_collection.find()]
                 selected_user = st.selectbox("Select Investor", user_list)
-                deposit_amount = st.number_input("Enter Amount", min_value=0.0, step=0.01)
+                deposit_amount = st.number_input("Enter Amount", min_value=0.0, step=0.01, format="%.2f")
                 submit_button = st.form_submit_button(label='Submit')
                 if submit_button:
                     if selected_user and deposit_amount > 0:
@@ -161,7 +163,7 @@ if page == "Investment Tracker":
                         else:
                             new_amount = deposit_amount
                         users_collection.update_one({"name": selected_user}, {"$set": {"deposit": new_amount}})
-                        st.success(f"Deposited {deposit_amount} to {selected_user}. Total deposit: {new_amount}")
+                        st.success(f"Deposited {deposit_amount:.2f} to {selected_user}. Total deposit: {new_amount:.2f}")
                     else:
                         st.error("Please select an investor and enter a valid amount.")
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -171,13 +173,13 @@ if page == "Investment Tracker":
             with st.form(key='expense_form', clear_on_submit=True):
                 st.markdown('<div class="form-container">', unsafe_allow_html=True)
                 expense_name = st.text_input("Expense Name")
-                expense_amount = st.number_input("Enter Amount", min_value=0.0, step=0.01)
+                expense_amount = st.number_input("Enter Amount", min_value=0.0, step=0.01, format="%.2f")
                 submit_button = st.form_submit_button(label='Submit')
                 if submit_button:
                     if expense_name and expense_amount > 0:
                         expenses_collection.insert_one({"name": expense_name, "amount": expense_amount})
                         total_expenses = sum(expense["amount"] for expense in expenses_collection.find())
-                        st.success(f"Expense '{expense_name}' of {expense_amount} added. Total expenses: {total_expenses}")
+                        st.success(f"Expense '{expense_name}' of {expense_amount:.2f} added. Total expenses: {total_expenses:.2f}")
                     else:
                         st.error("Please enter a valid expense name and amount.")
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -187,14 +189,14 @@ if page == "Investment Tracker":
             with st.form(key='monthly_expected_form', clear_on_submit=True):
                 st.markdown('<div class="form-container">', unsafe_allow_html=True)
                 emi_name = st.text_input("EMI Name")
-                emi_amount = st.number_input("Enter Amount", min_value=0.0, step=0.01)
+                emi_amount = st.number_input("Enter Amount", min_value=0.0, step=0.01, format="%.2f")
                 total_emi_amount = sum(item["amount"] for item in monthly_expected_collection.find())
-                st.write(f"Total EMI Amount: {total_emi_amount}")
+                st.write(f"Total EMI Amount: {total_emi_amount:.2f}")
                 submit_button = st.form_submit_button(label='Submit')
                 if submit_button:
                     if emi_name and emi_amount > 0:
                         monthly_expected_collection.insert_one({"name": emi_name, "amount": emi_amount})
-                        st.success(f"Monthly expected EMI '{emi_name}' of {emi_amount} added.")
+                        st.success(f"Monthly expected EMI '{emi_name}' of {emi_amount:.2f} added.")
                     else:
                         st.error("Please enter a valid EMI name and amount.")
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -239,10 +241,10 @@ elif page == "Portfolio":
         equity_percentage = (1/ 50000) * expenditure if 50000 > 0 else 0
         portfolio_data.append({
             "User": user_name,
-            "Funded": funded,
-            "Expenditure": expenditure,
-            "Amount": amount,
-            "Equity %": equity_percentage
+            "Funded": f"{funded:.2f}",
+            "Expenditure": f"{expenditure:.2f}",
+            "Amount": f"{amount:.2f}",
+            "Equity %": f"{equity_percentage:.2f}"
         })
 
     # Convert to DataFrame
@@ -254,11 +256,11 @@ elif page == "Portfolio":
     # Display total expenses, total funded, and to be funded
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown(f"**Total Expenses: {total_expenses}**")
+        st.markdown(f"**Total Expenses: {total_expenses:.2f}**")
     with col2:
-        st.markdown(f"**Total Funded: {total_funded}**")
+        st.markdown(f"**Total Funded: {total_funded:.2f}**")
     with col3:
-        st.markdown(f"**To Be Funded: {to_be_funded}**")
+        st.markdown(f"**To Be Funded: {to_be_funded:.2f}**")
 
     # Button to show expense details
     if st.button("Show Expense Details"):
@@ -267,6 +269,6 @@ elif page == "Portfolio":
         st.table(expense_details)
 
     # Add note below the portfolio page
-    st.markdown('<p class="note">*Note: The fields expenses, amount, and equity change according to the ratio that you funded.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="note">*Note: The fields expenses, amount, and equity changes according to the ratio that you funded.</p>', unsafe_allow_html=True)
 
 # To run the app, use the command: streamlit run your_script_name.py
